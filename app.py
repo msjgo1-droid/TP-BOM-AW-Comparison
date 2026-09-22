@@ -11,7 +11,7 @@ import streamlit as st
 
 from src.i18n import LANGS, t
 from src.matching import build_parsed_file, group_files, CATEGORIES
-from src.render import compute_page_diffs, render_page_image
+from src.render import compute_page_diffs, render_page_image, export_region_images
 from src.excel_export import build_excel
 
 st.set_page_config(page_title="TP/BOM/AW", page_icon="🧵", layout="wide")
@@ -164,7 +164,6 @@ if groups:
 
                     for page_entry in diffs["pages"]:
                         page_num = page_entry["page_num"]
-                        rid = _row_id(style, aw_code, category, old_pf.filename, new_pf.filename, page_num)
                         boxes = page_entry["boxes"]
 
                         if boxes is None:
@@ -173,8 +172,9 @@ if groups:
                             excel_rows.append({
                                 "group": group_label, "category": cat_name,
                                 "old_file": old_pf.filename, "new_file": new_pf.filename,
-                                "page": page_num, "status": status, "text_status": text_status,
-                                "confirmed": False, "note": "",
+                                "page": page_num, "region": "", "status": status,
+                                "text_status": text_status, "confirmed": False, "note": "",
+                                "image_bytes": None,
                             })
                             continue
 
@@ -183,32 +183,46 @@ if groups:
                             excel_rows.append({
                                 "group": group_label, "category": cat_name,
                                 "old_file": old_pf.filename, "new_file": new_pf.filename,
-                                "page": page_num, "status": t(lang, "no_diff"), "text_status": text_status,
-                                "confirmed": True, "note": "",
+                                "page": page_num, "region": "", "status": t(lang, "no_diff"),
+                                "text_status": text_status, "confirmed": True, "note": "",
+                                "image_bytes": None,
                             })
                             continue
 
+                        # 페이지 전체 개요(어디가 달라졌는지 박스로 표시) — 한 번만 보여준다.
                         st.markdown(f"**{t(lang, 'page_label', n=page_num)} — {t(lang, 'diff_found')}**")
-                        img_bytes = render_page_image(page_entry, lang)
-                        if img_bytes:
-                            st.image(img_bytes, width="stretch")
-                        checked = st.checkbox(
-                            t(lang, "checklist_label"),
-                            key=f"chk_{rid}",
-                        )
-                        note_val = st.text_input(
-                            t(lang, "excel_col_note"),
-                            key=f"note_{rid}",
-                            label_visibility="collapsed",
-                            placeholder=t(lang, "excel_col_note"),
-                        )
-                        excel_rows.append({
-                            "group": group_label, "category": cat_name,
-                            "old_file": old_pf.filename, "new_file": new_pf.filename,
-                            "page": page_num, "status": t(lang, "diff_found"), "text_status": text_status,
-                            "confirmed": checked, "note": note_val,
-                        })
-                        st.divider()
+                        overview_bytes = render_page_image(page_entry, lang)
+                        if overview_bytes:
+                            st.image(overview_bytes, width="stretch")
+
+                        # 차이 영역 1개당 1행: 영역별 확대 이미지 + 체크박스 + 메모.
+                        # 화면과 엑셀이 정확히 같은 이미지를 쓰므로 한 번만 렌더링해서 재사용한다.
+                        for region_num, region_img_bytes in export_region_images(page_entry, lang):
+                            rid = _row_id(
+                                style, aw_code, category, old_pf.filename, new_pf.filename,
+                                f"{page_num}-{region_num}",
+                            )
+                            st.caption(t(lang, "region_label", n=region_num))
+                            st.image(region_img_bytes, width="stretch")
+                            checked = st.checkbox(
+                                t(lang, "checklist_label"),
+                                key=f"chk_{rid}",
+                            )
+                            note_val = st.text_input(
+                                t(lang, "excel_col_note"),
+                                key=f"note_{rid}",
+                                label_visibility="collapsed",
+                                placeholder=t(lang, "excel_col_note"),
+                            )
+                            excel_rows.append({
+                                "group": group_label, "category": cat_name,
+                                "old_file": old_pf.filename, "new_file": new_pf.filename,
+                                "page": page_num, "region": region_num,
+                                "status": t(lang, "diff_found"), "text_status": text_status,
+                                "confirmed": checked, "note": note_val,
+                                "image_bytes": region_img_bytes,
+                            })
+                            st.divider()
 
     if unmatched:
         with st.expander(t(lang, "unmatched_header")):

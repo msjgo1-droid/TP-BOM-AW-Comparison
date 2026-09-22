@@ -164,6 +164,8 @@ STRINGS = {
     "excel_col_old_file": {"ko": "이전 파일명", "en": "Old file name", "vi": "Tên tệp cũ"},
     "excel_col_new_file": {"ko": "새 파일명", "en": "New file name", "vi": "Tên tệp mới"},
     "excel_col_page": {"ko": "페이지", "en": "Page", "vi": "Trang"},
+    "excel_col_region": {"ko": "차이 번호", "en": "Difference #", "vi": "Số khác biệt"},
+    "excel_col_image": {"ko": "이미지", "en": "Image", "vi": "Hình ảnh"},
     "excel_col_status": {"ko": "결과", "en": "Result", "vi": "Kết quả"},
     "excel_col_text_status": {"ko": "텍스트 비교", "en": "Text comparison", "vi": "So sánh văn bản"},
     "excel_col_confirmed": {"ko": "검토 완료", "en": "Reviewed", "vi": "Đã kiểm tra"},
